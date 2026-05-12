@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>GastosTrack — Track Every Peso</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --p:       #530453;
+  --p-mid:   #7c3a9e;
+  --p-light: #b07fd4;
+  --teal:    #3ecfaf;
+  --teal-dk: #1ba890;
+  --red:     #e8433a;
+  --green:   #22c36a;
+  --gold:    #f5a623;
+  --bg:      #f7f4fd;
+  --card:    #ffffff;
+  --border:  #e6ddf5;
+  --ink:     #160d20;
+  --muted:   #7e6e94;
+  --sidebar: #130813;
+  --sidebar-act: rgba(83,4,83,0.9);
+  --nav-h: 60px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;-webkit-tap-highlight-color:transparent}
+body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;overflow-x:hidden}
+input,select,textarea,button{font-family:inherit}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ═══════════════════════════════
+   BOTTOM NAV (mobile)
+═══════════════════════════════ */
+.bottom-nav {
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--sidebar);
+  border-top:1px solid rgba(255,255,255,.07);
+  z-index:100;
+  height:var(--nav-h);
+  padding:0 4px;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.bottom-nav-inner {
+  display:flex;
+  height:var(--nav-h);
+  align-items:stretch;
+}
+.bn-item {
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;border:none;background:none;cursor:pointer;
+  color:rgba(255,255,255,.38);font-size:.6rem;font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;
+  padding:4px 2px;border-radius:0;transition:color .18s;
+  -webkit-tap-highlight-color:transparent;
+}
+.bn-item .bn-icon{font-size:18px;line-height:1;transition:transform .18s}
+.bn-item.active{color:var(--teal)}
+.bn-item.active .bn-icon{transform:scale(1.1)}
+
+/* ═══════════════════════════════
+   AUTH
+═══════════════════════════════ */
+#auth-screen{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100dvh;padding:16px;
+  background: radial-gradient(ellipse 90% 70% at 50% -10%, rgba(83,4,83,.22) 0%, transparent 65%),
+              radial-gradient(ellipse 60% 50% at 80% 100%, rgba(62,207,175,.08) 0%, transparent 60%),
+              var(--bg);
+}
+.auth-card{
+  width:100%;max-width:400px;background:var(--card);border-radius:22px;
+  box-shadow:0 30px 80px rgba(83,4,83,.16);
+  padding:36px 28px;border:1px solid var(--border);
+  animation:slideUp .4s ease;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.auth-brand{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:26px}
+.brand-icon{
+  width:42px;height:42px;border-radius:12px;
+  background:linear-gradient(135deg,var(--p),var(--p-mid));
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:17px;font-weight:700;flex-shrink:0;
+}
+.brand-name{font-family:'Playfair Display',serif;font-size:1.55rem;color:var(--p)}
+.brand-name span{color:var(--teal-dk)}
+.auth-title{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--ink);margin-bottom:5px;text-align:center}
+.auth-sub{color:var(--muted);font-size:.82rem;text-align:center;margin-bottom:22px}
+.form-group{margin-bottom:13px}
+.form-group label{display:block;font-weight:600;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.form-group input{
+  width:100%;padding:11px 14px;border:1.5px solid var(--border);
+  border-radius:11px;font-size:.92rem;color:var(--ink);
+  background:var(--bg);transition:border-color .2s,box-shadow .2s;outline:none;
+}
+.form-group input:focus{border-color:var(--p-mid);box-shadow:0 0 0 3px rgba(124,58,158,.1)}
+.auth-error{
+  background:#fff0f0;border:1px solid #f8c8c8;color:var(--red);
+  border-radius:9px;padding:9px 13px;font-size:.82rem;margin-bottom:12px;display:none;
+}
+.btn-full{
+  width:100%;padding:13px;border:none;border-radius:30px;
+  font-weight:700;font-size:.95rem;cursor:pointer;
+  background:linear-gradient(135deg,var(--p),var(--p-mid));
+  color:#fff;transition:opacity .2s,transform .15s;margin-top:4px;
+}
+.btn-full:active{opacity:.88;transform:scale(.98)}
+.auth-switch{text-align:center;margin-top:16px;font-size:.83rem;color:var(--muted)}
+.auth-switch a{color:var(--p);font-weight:600;text-decoration:none;cursor:pointer}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:44px!important;width:100%}
+.pw-toggle{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;padding:4px;
+  color:var(--muted);display:flex;align-items:center;transition:color .18s;
+}
+.pw-toggle:hover{color:var(--p)}
+.pw-toggle svg{width:18px;height:18px;display:block}
+
+/* ═══════════════════════════════
+   APP LAYOUT
+═══════════════════════════════ */
+#app{display:none;height:100dvh;flex-direction:row;overflow:hidden}
+#app.active{display:flex}
+
+/* SIDEBAR (desktop) */
+.sidebar{
+  width:220px;min-width:220px;background:var(--sidebar);
+  display:flex;flex-direction:column;height:100dvh;
+  position:relative;z-index:10;flex-shrink:0;overflow:hidden;
+}
+.sb-brand{
+  display:flex;align-items:center;gap:10px;
+  padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.sb-brand-name{font-family:'Playfair Display',serif;font-size:1.1rem;color:#fff}
+.sb-brand-name span{color:var(--teal)}
+.sb-section-label{
+  font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(255,255,255,.25);padding:18px 20px 6px;
+}
+.sb-nav{display:flex;flex-direction:column;gap:2px;padding:0 10px}
+.sb-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:10px;cursor:pointer;
+  color:rgba(255,255,255,.48);font-size:.88rem;font-weight:500;
+  transition:background .18s,color .18s;border:none;background:none;
+  text-align:left;width:100%;
+}
+.sb-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.sb-item.active{background:var(--sidebar-act);color:#fff}
+.sb-item .sb-icon{font-size:16px;width:22px;text-align:center;flex-shrink:0}
+.sb-spacer{flex:1}
+.sb-user{
+  padding:14px 16px;border-top:1px solid rgba(255,255,255,.06);
+  display:flex;align-items:center;gap:10px;
+}
+.sb-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--p-mid),var(--teal-dk));
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.73rem;color:#fff;flex-shrink:0;
+}
+.sb-uname{font-size:.8rem;font-weight:600;color:rgba(255,255,255,.75);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-logout{
+  background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);
+  font-size:15px;padding:5px;border-radius:7px;transition:color .18s;
+}
+.sb-logout:hover{color:var(--red)}
+
+/* MAIN */
+.main-content{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0}
+.page{display:none;flex-direction:column;flex:1;animation:fadeIn .22s ease}
+.page.active{display:flex}
+
+/* PAGE HEADER */
+.page-header{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:16px 20px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;position:sticky;top:0;z-index:20;
+}
+.page-title{font-family:'Playfair Display',serif;font-size:1.35rem;color:var(--ink)}
+.page-subtitle{font-size:.75rem;color:var(--muted);margin-top:1px}
+
+/* MOBILE TOP HEADER */
+.mobile-header {
+  display:none;
+  background:var(--sidebar);
+  padding:14px 16px;
+  flex-shrink:0;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky;top:0;z-index:30;
+}
+.mobile-header .brand-name{font-family:'Playfair Display',serif;font-size:1.1rem;color:#fff}
+.mobile-header .brand-name span{color:var(--teal)}
+.mobile-logout-btn{
+  background:rgba(255,255,255,.1);border:none;border-radius:8px;
+  color:rgba(255,255,255,.7);font-size:.78rem;padding:6px 10px;
+  display:flex;align-items:center;gap:5px;cursor:pointer;
+}
+
+/* ═══════════════════════════════
+   EXPENSES PAGE
+═══════════════════════════════ */
+.expenses-body{padding:14px 16px;flex:1;display:flex;flex-direction:column;gap:12px;min-height:0}
+.add-form{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 16px;display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;
+}
+.add-form .form-field{display:flex;flex-direction:column;gap:4px}
+.add-form label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.add-form input,.add-form select{
+  height:38px;padding:0 12px;border:1.5px solid var(--border);border-radius:9px;
+  font-size:.87rem;color:var(--ink);background:#fafafa;outline:none;
+  transition:border-color .2s;-webkit-appearance:none;
+}
+.add-form input:focus,.add-form select:focus{border-color:var(--p-mid)}
+.add-form input.desc{width:100%;min-width:150px}
+.add-form input.amt{width:100%;min-width:100px}
+.add-form select.cat{width:100%;min-width:150px}
+.add-form-row{display:flex;gap:10px;flex:1;min-width:0;width:100%}
+.add-form-row .form-field{flex:1;min-width:0}
+
+.filter-row{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:10px 14px;display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;
+}
+.filter-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:0}
+.filter-row select{height:34px;padding:0 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;color:var(--ink);background:#fafafa;outline:none;-webkit-appearance:none;max-width:200px;}
+.total-badge{
+  background:linear-gradient(135deg,var(--p),var(--p-mid));
+  color:#fff;border-radius:10px;padding:7px 14px;
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.total-badge .lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.65)}
+.total-badge .val{font-family:'Playfair Display',serif;font-size:1.1rem;color:#fff}
+
+/* Table */
+.table-wrap{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column;
+}
+.data-table{width:100%;border-collapse:collapse}
+.data-table thead th{
+  background:#fff;border-bottom:2px solid var(--border);
+  padding:10px 12px;text-align:left;font-size:.67rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+  white-space:nowrap;position:sticky;top:0;z-index:2;
+}
+.data-table tbody tr{border-bottom:1px solid #f5f0fd;transition:background .15s}
+.data-table tbody tr:hover{background:#faf7ff}
+.data-table tbody td{padding:9px 12px;font-size:.86rem;color:var(--ink)}
+.data-table tbody tr:last-child{border-bottom:none}
+.table-scroll{overflow-y:auto;overflow-x:auto;flex:1;-webkit-overflow-scrolling:touch}
+.no-data{text-align:center;padding:40px 20px;color:var(--muted);font-style:italic;font-size:.88rem}
+
+/* Mobile card view */
+.exp-card-list{display:none;flex-direction:column;gap:8px;padding:4px 0;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.exp-card{
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;display:flex;align-items:center;gap:12px;
+}
+.exp-card-left{flex:1;min-width:0}
+.exp-card-desc{font-weight:600;font-size:.9rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exp-card-meta{font-size:.73rem;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.exp-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.exp-card-amt{font-family:'Playfair Display',serif;font-size:1rem;color:var(--p);white-space:nowrap}
+.exp-card-btns{display:flex;gap:5px}
+
+.cat-badge{
+  display:inline-block;padding:2px 8px;border-radius:20px;
+  font-size:.65rem;font-weight:700;white-space:nowrap;
+}
+.icon-btn{
+  padding:5px 10px;border:none;border-radius:7px;
+  font-size:.75rem;font-weight:600;cursor:pointer;transition:opacity .18s;
+}
+.icon-btn:active{opacity:.7}
+.btn-edit{background:rgba(83,4,83,.1);color:var(--p)}
+.btn-del{background:rgba(232,67,58,.1);color:var(--red)}
+.btn-achieve{background:rgba(34,195,106,.1);color:var(--green)}
+
+/* ═══════════════════════════════
+   BUTTONS
+═══════════════════════════════ */
+.btn{
+  padding:8px 16px;border:none;border-radius:30px;
+  font-weight:600;font-size:.85rem;cursor:pointer;
+  transition:opacity .18s,transform .15s;display:inline-flex;align-items:center;gap:5px;
+  white-space:nowrap;
+}
+.btn:active{opacity:.85;transform:scale(.97)}
+.btn-purple{background:var(--p);color:#fff}
+.btn-teal{background:var(--teal-dk);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-outline{background:#fff;color:var(--p);border:1.5px solid var(--p)}
+.btn-sm{padding:6px 12px;font-size:.78rem}
+
+/* ═══════════════════════════════
+   REPORT PAGE
+═══════════════════════════════ */
+.report-body{padding:14px 16px;flex:1;display:grid;grid-template-columns:1fr 1fr;gap:14px;overflow-y:auto;align-content:start}
+.report-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px}
+.report-card h3{font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:14px}
+.report-card.full{grid-column:1/-1}
+.chart-wrap{position:relative;height:240px;display:flex;align-items:center;justify-content:center}
+.analytics-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;grid-column:1/-1}
+.analytic{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 16px;display:flex;align-items:center;gap:12px;
+}
+.analytic-icon{
+  width:40px;height:40px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+}
+.analytic-lbl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.analytic-val{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--p);margin-top:1px}
+
+/* ═══════════════════════════════
+   GOALS PAGE
+═══════════════════════════════ */
+.goals-body{padding:14px 16px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.goal-card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:16px;display:flex;align-items:flex-start;gap:14px;
+  transition:border-color .2s;
+}
+.goal-card.achieved{border-color:var(--green);background:#f6fffb}
+.goal-info{flex:1;min-width:0}
+.goal-name{font-weight:700;font-size:.93rem;color:var(--ink);margin-bottom:1px}
+.goal-type{font-size:.74rem;color:var(--muted);margin-bottom:8px}
+.progress-bar-bg{height:7px;border-radius:10px;background:var(--border);overflow:hidden}
+.progress-bar-fill{height:100%;border-radius:10px;transition:width .4s ease}
+.progress-text{font-size:.72rem;color:var(--muted);margin-top:4px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:2px}
+.goal-actions{display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.empty-state{
+  text-align:center;padding:50px 20px;color:var(--muted);
+  font-style:italic;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+}
+
+/* ═══════════════════════════════
+   HISTORY PAGE
+═══════════════════════════════ */
+.history-body{padding:14px 16px;flex:1;display:flex;flex-direction:column;gap:12px;min-height:0}
+.history-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ═══════════════════════════════
+   MODAL
+═══════════════════════════════ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(18,5,18,.5);
+  display:flex;align-items:flex-end;justify-content:center;z-index:300;
+  backdrop-filter:blur(5px);animation:fadeIn .2s ease;
+}
+.modal{
+  background:#fff;border-radius:22px 22px 0 0;padding:28px 24px 32px;
+  width:100%;max-width:500px;
+  box-shadow:0 -20px 60px rgba(83,4,83,.18);animation:slideUp .3s ease;
+  max-height:90dvh;overflow-y:auto;
+}
+@media(min-width:600px){
+  .modal-overlay{align-items:center}
+  .modal{border-radius:20px;max-width:440px;padding:30px 28px}
+}
+.modal h3{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--ink);margin-bottom:18px}
+.modal .form-group{margin-bottom:13px}
+.modal .form-group label{display:block;font-weight:600;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.modal .form-group input,.modal .form-group select{
+  width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;
+  font-size:.9rem;color:var(--ink);background:var(--bg);outline:none;
+  transition:border-color .2s;-webkit-appearance:none;
+}
+.modal .form-group input:focus,.modal .form-group select:focus{border-color:var(--p-mid)}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.modal-error{background:#fff0f0;border:1px solid #f8c8c8;color:var(--red);border-radius:8px;padding:8px 12px;font-size:.8rem;margin-bottom:10px;display:none}
+
+/* MODAL DRAG HANDLE (mobile) */
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:4px;margin:0 auto 18px;display:block}
+@media(min-width:600px){.modal-handle{display:none}}
+
+/* ═══════════════════════════════
+   TUTORIAL
+═══════════════════════════════ */
+.tutorial-overlay{
+  position:fixed;inset:0;background:rgba(18,5,18,.55);
+  display:flex;align-items:flex-end;justify-content:center;z-index:400;
+  backdrop-filter:blur(6px);animation:fadeIn .25s ease;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+@media(min-width:600px){.tutorial-overlay{align-items:center}}
+.tutorial-box{
+  background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:500px;
+  box-shadow:0 -30px 80px rgba(83,4,83,.22);animation:slideUp .35s ease;
+  overflow:hidden;max-height:90dvh;display:flex;flex-direction:column;
+}
+@media(min-width:600px){.tutorial-box{border-radius:22px;max-height:80vh}}
+.tutorial-header{
+  background:linear-gradient(135deg,var(--p) 0%,var(--p-mid) 60%,#7c1b9e 100%);
+  padding:24px 28px 20px;position:relative;overflow:hidden;flex-shrink:0;
+}
+.tutorial-header::before{content:'';position:absolute;top:-30px;right:-30px;width:150px;height:150px;border-radius:50%;background:rgba(62,207,175,.15)}
+.tutorial-header::after{content:'';position:absolute;bottom:-40px;left:-20px;width:110px;height:110px;border-radius:50%;background:rgba(245,166,35,.08)}
+.tut-brand{display:flex;align-items:center;gap:10px;margin-bottom:8px;position:relative;z-index:1}
+.tut-brand-name{font-family:'Playfair Display',serif;font-size:1.3rem;color:#fff}
+.tut-brand-name span{color:var(--teal)}
+.tut-welcome{font-size:.84rem;color:rgba(255,255,255,.72);position:relative;z-index:1;font-weight:300}
+.tutorial-body{padding:20px 24px;overflow-y:auto;flex:1}
+.tut-steps{display:flex;flex-direction:column;gap:13px}
+.tut-step{display:flex;gap:12px;align-items:flex-start}
+.tut-num{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  background:rgba(83,4,83,.09);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-size:.9rem;color:var(--p);font-weight:700;margin-top:1px;
+}
+.tut-step-text h4{font-size:.86rem;font-weight:700;color:var(--ink);margin-bottom:2px}
+.tut-step-text p{font-size:.79rem;color:var(--muted);line-height:1.6}
+.tut-tip{margin-top:13px;background:#e8f9f5;border-radius:10px;padding:10px 13px;display:flex;gap:9px;align-items:flex-start}
+.tut-tip-icon{font-size:13px;margin-top:1px;flex-shrink:0}
+.tut-tip p{font-size:.77rem;color:#0a6150;line-height:1.55}
+.tutorial-footer{
+  padding:14px 24px 20px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:#faf8ff;flex-shrink:0;
+}
+.tut-dont-ask{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.79rem;color:var(--muted)}
+.tut-dont-ask input{cursor:pointer;accent-color:var(--p)}
+
+/* ═══════════════════════════════
+   TOAST
+═══════════════════════════════ */
+#toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(8px);
+  z-index:999;background:var(--ink);color:#fff;padding:11px 20px;
+  border-radius:30px;font-size:.84rem;font-weight:500;white-space:nowrap;
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(min-width:768px){
+  #toast{bottom:28px;left:auto;right:28px;transform:translateY(8px)}
+  #toast.show{transform:none}
+}
+
+/* ═══════════════════════════════
+   CATEGORY COLORS
+═══════════════════════════════ */
+.c-FOOD{background:#e8f5e9;color:#2e7d32}
+.c-RENT{background:#e3f2fd;color:#1565c0}
+.c-SHOPPING{background:#fce4ec;color:#880e4f}
+.c-MEDICINE{background:#e8f5e9;color:#1b5e20}
+.c-FUEL{background:#fff3e0;color:#e65100}
+.c-UTILITIES{background:#f3e5f5;color:#6a1b9a}
+.c-ENTERTAINMENT{background:#fff8e1;color:#f57f17}
+.c-TRANSPORTATION{background:#e0f7fa;color:#006064}
+.c-SCHOOL{background:#e8eaf6;color:#283593}
+.c-CLOTHING{background:#fce4ec;color:#ad1457}
+.c-PERSONAL{background:#f3e5f5;color:#4a148c}
+.c-SAVINGS{background:#e8f5e9;color:#1b5e20}
+.c-INSURANCE{background:#e3f2fd;color:#0d47a1}
+.c-OTHER{background:#f5f5f5;color:#424242}
+
+/* ═══════════════════════════════
+   MOBILE RESPONSIVE
+═══════════════════════════════ */
+@media(max-width:767px){
+  .sidebar{display:none!important}
+  .bottom-nav{display:block}
+  .mobile-header{display:flex}
+  
+  #app{flex-direction:column}
+  .main-content{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));height:calc(100dvh - 0px)}
+
+  .page-header{top:0;padding:12px 16px}
+  .page-title{font-size:1.15rem}
+
+  /* Expenses: hide table, show cards */
+  .table-wrap{display:none}
+  .exp-card-list{display:flex}
+
+  /* Add form: stack on mobile */
+  .add-form{flex-direction:column;gap:8px;padding:12px}
+  .add-form .form-field{width:100%}
+  .add-form input.desc,.add-form input.amt,.add-form select.cat{width:100%}
+  .add-form-row{flex-direction:row}
+  .add-form .btn{width:100%;justify-content:center}
+
+  .filter-row{padding:8px 12px;gap:8px}
+  .filter-row select{width:100%;max-width:none}
+  .total-badge{width:100%;justify-content:space-between}
+  .filter-left{width:100%}
+
+  /* Report: single col */
+  .report-body{grid-template-columns:1fr;padding:12px}
+  .analytics-cards{grid-template-columns:1fr 1fr}
+  .analytic{padding:12px}
+  .analytic-val{font-size:1.2rem}
+  .report-card.full{grid-column:auto}
+  .chart-wrap{height:200px}
+
+  /* Goals */
+  .goal-card{flex-direction:column;gap:10px}
+  .goal-actions{flex-direction:row;flex-wrap:wrap;width:100%}
+  .goal-actions .icon-btn{flex:1;text-align:center}
+
+  /* History */
+  .history-actions{justify-content:flex-end}
+  .history-body{padding:12px}
+
+  /* Table on history page still scrolls */
+  .history-body .table-wrap{display:flex}
+
+  .expenses-body{padding:10px 12px;gap:10px}
+  .goals-body{padding:10px 12px}
+}
+
+@media(min-width:768px) and (max-width:1024px){
+  .sidebar{width:64px;min-width:64px}
+  .sb-brand{padding:18px 0;justify-content:center}
+  .sb-brand-name,.sb-section-label,.sb-item span,.sb-uname{display:none}
+  .sb-nav{padding:0 6px}
+  .sb-item{padding:10px;justify-content:center}
+  .sb-item .sb-icon{margin:0;width:auto}
+  .sb-user{padding:10px 0;justify-content:center}
+  .report-body{grid-template-columns:1fr}
+  .analytics-cards{grid-template-columns:1fr 1fr}
+  .report-card.full{grid-column:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH ═══ -->
+<div id="auth-screen">
+  <div id="login-card" class="auth-card">
+    <div class="auth-brand">
+      <div class="brand-icon">₱</div>
+      <div class="brand-name">Gastos<span>Track</span></div>
+    </div>
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-sub">Sign in to manage your expenses</div>
+    <div class="auth-error" id="login-error"></div>
+    <div class="form-group"><label>Username</label><input id="li-user" type="text" placeholder="Enter your username" autocomplete="username" inputmode="text"/></div>
+    <div class="form-group"><label>Password</label>
+      <div class="pw-wrap">
+        <input id="li-pass" type="password" placeholder="Enter your password" autocomplete="current-password"/>
+        <button type="button" class="pw-toggle" onclick="togglePw('li-pass',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <button class="btn-full" onclick="doLogin()">Sign In</button>
+    <div class="auth-switch">No account? <a onclick="showSignup()">Sign up free</a></div>
+  </div>
+  <div id="signup-card" class="auth-card" style="display:none">
+    <div class="auth-brand">
+      <div class="brand-icon">₱</div>
+      <div class="brand-name">Gastos<span>Track</span></div>
+    </div>
+    <div class="auth-title">Create account</div>
+    <div class="auth-sub">Join GastosTrack — it's free</div>
+    <div class="auth-error" id="su-error"></div>
+    <div class="form-group"><label>Username</label><input id="su-user" type="text" placeholder="Choose a username"/></div>
+    <div class="form-group"><label>Password</label>
+      <div class="pw-wrap">
+        <input id="su-pass" type="password" placeholder="At least 4 characters"/>
+        <button type="button" class="pw-toggle" onclick="togglePw('su-pass',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="form-group"><label>Confirm Password</label>
+      <div class="pw-wrap">
+        <input id="su-conf" type="password" placeholder="Repeat your password"/>
+        <button type="button" class="pw-toggle" onclick="togglePw('su-conf',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <button class="btn-full" onclick="doSignup()">Create Account</button>
+    <div class="auth-switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app">
+  <!-- SIDEBAR (desktop/tablet) -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="brand-icon" style="width:32px;height:32px;font-size:13px;border-radius:8px">₱</div>
+      <div class="sb-brand-name">Gastos<span>Track</span></div>
+    </div>
+    <div class="sb-section-label">Menu</div>
+    <nav class="sb-nav">
+      <button class="sb-item active" data-page="expenses" onclick="goPage('expenses',this)"><span class="sb-icon">💰</span><span>Expenses</span></button>
+      <button class="sb-item" data-page="report" onclick="goPage('report',this)"><span class="sb-icon">📊</span><span>Report</span></button>
+      <button class="sb-item" data-page="goals" onclick="goPage('goals',this)"><span class="sb-icon">🎯</span><span>Goals</span></button>
+      <button class="sb-item" data-page="history" onclick="goPage('history',this)"><span class="sb-icon">🗂️</span><span>History</span></button>
+      <button class="sb-item" onclick="openTutorial()"><span class="sb-icon">📖</span><span>Tutorial</span></button>
+    </nav>
+    <div class="sb-spacer"></div>
+    <div class="sb-user">
+      <div class="sb-avatar" id="sb-avatar">?</div>
+      <div class="sb-uname" id="sb-uname">User</div>
+      <button class="sb-logout" onclick="doLogout()" title="Logout">⏻</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <!-- Mobile header -->
+    <div class="mobile-header">
+      <div class="auth-brand" style="margin:0;gap:8px">
+        <div class="brand-icon" style="width:30px;height:30px;font-size:12px;border-radius:8px">₱</div>
+        <div class="brand-name" style="font-size:1rem">Gastos<span>Track</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="sb-avatar" id="mob-avatar" style="width:28px;height:28px;font-size:.65rem">?</div>
+        <button class="mobile-logout-btn" onclick="doLogout()">⏻ Out</button>
+      </div>
+    </div>
+
+    <!-- EXPENSES PAGE -->
+    <div id="page-expenses" class="page active">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Expenses</div>
+          <div class="page-subtitle">Track every peso</div>
+        </div>
+      </div>
+      <div class="expenses-body">
+        <div class="add-form">
+          <div class="form-field" style="flex:2;min-width:0;width:100%">
+            <label>Description</label>
+            <input class="desc" id="e-desc" placeholder="e.g. Jollibee dinner" autocapitalize="words"/>
+          </div>
+          <div class="add-form-row">
+            <div class="form-field">
+              <label>Amount (₱)</label>
+              <input class="amt" id="e-amt" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal"/>
+            </div>
+            <div class="form-field">
+              <label>Category</label>
+              <select class="cat" id="e-cat"></select>
+            </div>
+          </div>
+          <button class="btn btn-purple" onclick="addExpense()" style="align-self:stretch;justify-content:center">+ Add</button>
+        </div>
+        <div class="filter-row">
+          <div class="filter-left">
+            <select id="filter-cat" onchange="renderExpenses()" style="flex:1;min-width:0;max-width:none"></select>
+            <button class="btn btn-outline btn-sm" onclick="clearFilter()">Clear</button>
+          </div>
+          <div class="total-badge">
+            <div class="lbl">Total</div>
+            <div class="val" id="total-val">₱ 0.00</div>
+          </div>
+        </div>
+        <!-- Desktop table -->
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table class="data-table" id="exp-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>Description</th><th>Amount (₱)</th><th>Category</th><th>Date & Time</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="exp-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Mobile cards -->
+        <div class="exp-card-list" id="exp-cards"></div>
+      </div>
+    </div>
+
+    <!-- REPORT PAGE -->
+    <div id="page-report" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Report</div>
+          <div class="page-subtitle">Spending breakdown</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="renderReport()">↺ Refresh</button>
+      </div>
+      <div class="report-body" id="report-body">
+        <div class="analytics-cards">
+          <div class="analytic">
+            <div class="analytic-icon" style="background:rgba(83,4,83,.1)">💸</div>
+            <div><div class="analytic-lbl">Total</div><div class="analytic-val" id="rep-total">₱ 0.00</div></div>
+          </div>
+          <div class="analytic">
+            <div class="analytic-icon" style="background:rgba(27,168,144,.12)">📂</div>
+            <div><div class="analytic-lbl">Categories</div><div class="analytic-val" id="rep-cats">0</div></div>
+          </div>
+        </div>
+        <div class="report-card full">
+          <h3>Spending Breakdown</h3>
+          <div class="chart-wrap"><canvas id="pie-chart"></canvas></div>
+        </div>
+        <div class="report-card full">
+          <h3>Category Report</h3>
+          <div class="table-scroll" style="max-height:280px">
+            <table class="data-table"><thead><tr><th>Category</th><th>Total (₱)</th><th>%</th></tr></thead><tbody id="rep-body"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GOALS PAGE -->
+    <div id="page-goals" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Goals</div>
+          <div class="page-subtitle">Savings & spending targets</div>
+        </div>
+        <button class="btn btn-purple btn-sm" onclick="openGoalModal()">+ Add</button>
+      </div>
+      <div class="goals-body" id="goals-body"></div>
+    </div>
+
+    <!-- HISTORY PAGE -->
+    <div id="page-history" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">History</div>
+          <div class="page-subtitle">Deleted expenses</div>
+        </div>
+        <div class="history-actions">
+          <button class="btn btn-red btn-sm" onclick="deleteSelectedHistory()">Del Selected</button>
+          <button class="btn btn-red btn-sm" onclick="clearAllHistory()">Clear All</button>
+        </div>
+      </div>
+      <div class="history-body">
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>#</th><th>Description</th><th>Amount</th><th>Category</th><th>Deleted At</th><th></th></tr></thead>
+              <tbody id="hist-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV (mobile) -->
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button class="bn-item active" data-page="expenses" onclick="goPage('expenses',null);setActiveBn(this)">
+        <span class="bn-icon">💰</span><span>Expenses</span>
+      </button>
+      <button class="bn-item" data-page="report" onclick="goPage('report',null);setActiveBn(this)">
+        <span class="bn-icon">📊</span><span>Report</span>
+      </button>
+      <button class="bn-item" data-page="goals" onclick="goPage('goals',null);setActiveBn(this)">
+        <span class="bn-icon">🎯</span><span>Goals</span>
+      </button>
+      <button class="bn-item" data-page="history" onclick="goPage('history',null);setActiveBn(this)">
+        <span class="bn-icon">🗂️</span><span>History</span>
+      </button>
+      <button class="bn-item" onclick="openTutorial()">
+        <span class="bn-icon">📖</span><span>Guide</span>
+      </button>
+    </div>
+  </nav>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="edit-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Edit Expense</h3>
+    <div class="modal-error" id="edit-error"></div>
+    <div class="form-group"><label>Description</label><input id="edit-desc" autocapitalize="words"/></div>
+    <div class="form-group"><label>Amount (₱)</label><input id="edit-amt" type="number" min="0" step="0.01" inputmode="decimal"/></div>
+    <div class="form-group"><label>Category</label><select id="edit-cat"></select></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-purple" onclick="saveEditExpense()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- GOAL MODAL -->
+<div id="goal-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeGoalModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 id="goal-modal-title">Add Goal</h3>
+    <div class="modal-error" id="goal-error"></div>
+    <div class="form-group"><label>Goal Name</label><input id="g-name" placeholder="e.g. Emergency Fund" autocapitalize="words"/></div>
+    <div class="form-group"><label>Goal Type</label>
+      <select id="g-type">
+        <option>Monthly Savings Target</option>
+        <option>Custom Goal</option>
+        <option>Spending Limit per Category</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Target Amount (₱)</label><input id="g-target" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal"/></div>
+    <div class="form-group"><label>Current Amount (₱)</label><input id="g-current" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal"/></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeGoalModal()">Cancel</button>
+      <button class="btn btn-purple" onclick="saveGoal()">Save Goal</button>
+    </div>
+  </div>
+</div>
+
+<!-- TUTORIAL MODAL -->
+<div id="tutorial-modal" class="tutorial-overlay" style="display:none" onclick="if(event.target===this)closeTutorial()">
+  <div class="tutorial-box">
+    <div class="tutorial-header">
+      <div class="tut-brand">
+        <div class="brand-icon" style="width:32px;height:32px;font-size:14px;border-radius:9px">₱</div>
+        <div class="tut-brand-name">Gastos<span>Track</span></div>
+      </div>
+      <div class="tut-welcome" id="tut-welcome">Welcome! Here's a quick guide.</div>
+    </div>
+    <div class="tutorial-body">
+      <div class="tut-steps">
+        <div class="tut-step"><div class="tut-num">1</div><div class="tut-step-text"><h4>Add your expenses</h4><p>Fill in description, amount, and category then tap <strong>+ Add</strong>.</p></div></div>
+        <div class="tut-step"><div class="tut-num">2</div><div class="tut-step-text"><h4>Filter and manage</h4><p>Use the category dropdown to filter. Tap <strong>Edit</strong> or <strong>Delete</strong> on any entry.</p></div></div>
+        <div class="tut-step"><div class="tut-num">3</div><div class="tut-step-text"><h4>View your report</h4><p>Go to <strong>Report</strong> for a chart and table of spending by category.</p></div></div>
+        <div class="tut-step"><div class="tut-num">4</div><div class="tut-step-text"><h4>Set savings goals</h4><p>Use <strong>Goals</strong> to create targets and track progress with a live bar.</p></div></div>
+        <div class="tut-step"><div class="tut-num">5</div><div class="tut-step-text"><h4>Check deleted history</h4><p>Deleted expenses move to <strong>History</strong> where you can permanently remove them.</p></div></div>
+      </div>
+      <div class="tut-tip">
+        <div class="tut-tip-icon">💡</div>
+        <p>Reopen this guide anytime from the <strong>Guide</strong> button in the nav.</p>
+      </div>
+    </div>
+    <div class="tutorial-footer">
+      <label class="tut-dont-ask" id="tut-dont-ask-wrap">
+        <input type="checkbox" id="tut-dont-ask"/> Don't show again
+      </label>
+      <button class="btn btn-purple btn-sm" onclick="closeTutorial()">Got it 🚀</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ══ PASSWORD TOGGLE ══ */
+const EYE_OPEN=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_SHUT=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+function togglePw(id,btn){const i=document.getElementById(id),s=i.type==='text';i.type=s?'password':'text';btn.innerHTML=s?EYE_OPEN:EYE_SHUT;btn.style.color=s?'':'var(--p)'}
+
+/* ══ TUTORIAL ══ */
+function tutPrefKey(u){return`gt_tut_seen_${u}`}
+function shouldShowTutorial(u){return localStorage.getItem(tutPrefKey(u))!=='true'}
+function openTutorial(username){
+  const u=username||(currentUser&&currentUser.username)||'';
+  document.getElementById('tut-welcome').textContent=u?`Welcome, ${u}! Here's a quick guide.`:"Here's a quick guide to get you started.";
+  document.getElementById('tut-dont-ask').checked=false;
+  document.getElementById('tut-dont-ask-wrap').style.display=username?'flex':'none';
+  document.getElementById('tutorial-modal').style.display='flex';
+}
+function closeTutorial(){
+  const wrap=document.getElementById('tut-dont-ask-wrap');
+  if(wrap.style.display!=='none'&&document.getElementById('tut-dont-ask').checked&&currentUser)
+    localStorage.setItem(tutPrefKey(currentUser.username),'true');
+  document.getElementById('tutorial-modal').style.display='none';
+}
+
+const CATEGORIES=['FOOD & DRINK','RENT','SHOPPING','MEDICINE','FUEL','UTILITIES',
+  'ENTERTAINMENT','TRANSPORTATION','SCHOOL FEES','CLOTHING','PERSONAL CARE','SAVINGS','INSURANCE','OTHER'];
+
+function db(key,val){
+  if(val===undefined){try{return JSON.parse(localStorage.getItem(key))}catch{return null}}
+  localStorage.setItem(key,JSON.stringify(val));
+}
+function getUsers(){return db('gt_users')||{}}
+function saveUsers(u){db('gt_users',u)}
+function getUserData(uid,key){return db(`gt_${uid}_${key}`)||[]}
+function saveUserData(uid,key,val){db(`gt_${uid}_${key}`,val)}
+let currentUser=null;
+function nextId(arr){return arr.length?Math.max(...arr.map(x=>x.id||0))+1:1}
+
+/* ══ AUTH ══ */
+function showLogin(){
+  document.getElementById('signup-card').style.display='none';
+  document.getElementById('login-card').style.display='block';
+  hideErr('login-error');hideErr('su-error');
+}
+function showSignup(){
+  document.getElementById('login-card').style.display='none';
+  document.getElementById('signup-card').style.display='block';
+  hideErr('login-error');hideErr('su-error');
+}
+function showErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.style.display='block'}
+function hideErr(id){document.getElementById(id).style.display='none'}
+
+function doLogin(){
+  const u=v('li-user').trim().toLowerCase(),p=v('li-pass');
+  if(!u||!p){showErr('login-error','Please enter username and password.');return}
+  const users=getUsers();
+  if(!users[u]){showErr('login-error','Username not found.');return}
+  if(users[u].password!==p){showErr('login-error','Incorrect password.');return}
+  currentUser={id:users[u].id,username:u};
+  enterApp();
+  if(shouldShowTutorial(u)) setTimeout(()=>openTutorial(u),400);
+}
+function doSignup(){
+  const u=v('su-user').trim().toLowerCase(),p=v('su-pass'),c=v('su-conf');
+  if(!u||!p||!c){showErr('su-error','Please fill in all fields.');return}
+  if(u.length<3){showErr('su-error','Username must be at least 3 characters.');return}
+  if(p.length<4){showErr('su-error','Password must be at least 4 characters.');return}
+  if(p!==c){showErr('su-error','Passwords do not match.');return}
+  const users=getUsers();
+  if(users[u]){showErr('su-error','Username already taken.');return}
+  const id=Date.now();
+  users[u]={password:p,id};
+  saveUsers(users);
+  currentUser={id,username:u};
+  enterApp();
+  toast('Account created! Welcome 🎉');
+  setTimeout(()=>openTutorial(u),400);
+}
+function doLogout(){
+  currentUser=null;
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('auth-screen').style.display='flex';
+  set('li-user','');set('li-pass','');
+  showLogin();
+}
+
+function enterApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').classList.add('active');
+  const ini=currentUser.username.slice(0,2).toUpperCase();
+  document.getElementById('sb-avatar').textContent=ini;
+  document.getElementById('sb-uname').textContent=currentUser.username;
+  document.getElementById('mob-avatar').textContent=ini;
+  populateCatSelects();
+  goPage('expenses',document.querySelector('.sb-item[data-page="expenses"]'));
+}
+
+/* ══ NAVIGATION ══ */
+let pieChart=null;
+function goPage(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name==='expenses') renderExpenses();
+  if(name==='report') renderReport();
+  if(name==='goals') renderGoals();
+  if(name==='history') renderHistory();
+}
+function setActiveBn(btn){
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // Sync sidebar
+  const page=btn.dataset.page;
+  if(page){
+    document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+    const sb=document.querySelector(`.sb-item[data-page="${page}"]`);
+    if(sb) sb.classList.add('active');
+  }
+}
+
+/* ══ UTILS ══ */
+function v(id){return document.getElementById(id).value}
+function set(id,val){document.getElementById(id).value=val}
+function fmt(n){return Number(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function now(){return new Date().toLocaleString('sv-SE').replace('T',' ')}
+let toastTimer;
+function toast(msg,dur=2800){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),dur);
+}
+function catClass(c){return 'c-'+c.split(' ')[0].replace('&','')}
+function populateCatSelects(){
+  ['e-cat','filter-cat','edit-cat'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const isFilter=id==='filter-cat';
+    el.innerHTML=(isFilter?'<option value="">All Categories</option>':'')+
+      CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  });
+}
+function isMobile(){return window.innerWidth<768}
+
+/* ══ EXPENSES ══ */
+function getExpenses(){return getUserData(currentUser.id,'expenses')}
+function saveExpenses(arr){saveUserData(currentUser.id,'expenses',arr)}
+
+function addExpense(){
+  const desc=v('e-desc').trim().toUpperCase();
+  const amt=parseFloat(v('e-amt'));
+  const cat=v('e-cat');
+  if(!desc||!v('e-amt')){toast('⚠ Fill in description and amount.');return}
+  if(isNaN(amt)||amt<0){toast('⚠ Enter a valid amount.');return}
+  const exps=getExpenses();
+  exps.unshift({id:nextId(exps),desc,amt,cat,dt:now()});
+  saveExpenses(exps);
+  set('e-desc','');set('e-amt','');
+  renderExpenses();
+  toast('✓ Expense added');
+}
+
+function clearFilter(){set('filter-cat','');renderExpenses()}
+
+function renderExpenses(){
+  const exps=getExpenses();
+  const filterCat=v('filter-cat');
+  const filtered=filterCat?exps.filter(e=>e.cat===filterCat):exps;
+  const total=filtered.reduce((s,e)=>s+e.amt,0);
+  document.getElementById('total-val').textContent='₱ '+fmt(total);
+
+  // Desktop table
+  const tbody=document.getElementById('exp-body');
+  if(!filtered.length){
+    tbody.innerHTML=`<tr><td colspan="6" class="no-data">No expenses yet. Add one above! 👆</td></tr>`;
+  } else {
+    tbody.innerHTML=filtered.map((e,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${e.desc}</td>
+        <td>₱ ${fmt(e.amt)}</td>
+        <td><span class="cat-badge ${catClass(e.cat)}">${e.cat}</span></td>
+        <td>${e.dt}</td>
+        <td style="white-space:nowrap;display:flex;gap:5px">
+          <button class="icon-btn btn-edit" onclick="openEditModal(${e.id})">Edit</button>
+          <button class="icon-btn btn-del" onclick="deleteExpense(${e.id})">Del</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  // Mobile cards
+  const cards=document.getElementById('exp-cards');
+  if(!filtered.length){
+    cards.innerHTML=`<div class="no-data">No expenses yet. Add one above! 👆</div>`;
+  } else {
+    cards.innerHTML=filtered.map((e,i)=>`
+      <div class="exp-card">
+        <div class="exp-card-left">
+          <div class="exp-card-desc">${e.desc}</div>
+          <div class="exp-card-meta">
+            <span class="cat-badge ${catClass(e.cat)}">${e.cat}</span>
+            <span>${e.dt.slice(0,10)}</span>
+          </div>
+        </div>
+        <div class="exp-card-right">
+          <div class="exp-card-amt">₱ ${fmt(e.amt)}</div>
+          <div class="exp-card-btns">
+            <button class="icon-btn btn-edit" onclick="openEditModal(${e.id})">Edit</button>
+            <button class="icon-btn btn-del" onclick="deleteExpense(${e.id})">Del</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+}
+
+let editingId=null;
+function openEditModal(id){
+  const exp=getExpenses().find(e=>e.id===id);if(!exp)return;
+  editingId=id;set('edit-desc',exp.desc);set('edit-amt',exp.amt);set('edit-cat',exp.cat);
+  document.getElementById('edit-modal').style.display='flex';
+}
+function closeEditModal(){document.getElementById('edit-modal').style.display='none';editingId=null}
+function saveEditExpense(){
+  const desc=v('edit-desc').trim().toUpperCase(),amt=parseFloat(v('edit-amt')),cat=v('edit-cat');
+  const errEl=document.getElementById('edit-error');
+  if(!desc||isNaN(amt)){errEl.textContent='Fill all fields.';errEl.style.display='block';return}
+  const exps=getExpenses();
+  const idx=exps.findIndex(e=>e.id===editingId);
+  if(idx>-1){exps[idx]={...exps[idx],desc,amt,cat}}
+  saveExpenses(exps);closeEditModal();renderExpenses();toast('✓ Expense updated');
+}
+
+function deleteExpense(id){
+  if(!confirm('Move this expense to History?'))return;
+  const exps=getExpenses();
+  const idx=exps.findIndex(e=>e.id===id);if(idx===-1)return;
+  const deleted=exps.splice(idx,1)[0];deleted.deletedAt=now();
+  saveExpenses(exps);
+  const hist=getUserData(currentUser.id,'history');
+  hist.unshift({id:nextId(hist),desc:deleted.desc,amt:deleted.amt,cat:deleted.cat,dt:deleted.dt,deletedAt:deleted.deletedAt});
+  saveUserData(currentUser.id,'history',hist);
+  renderExpenses();toast('🗑 Moved to history');
+}
+
+/* ══ REPORT ══ */
+const CHART_COLORS=['#530453','#3ecfaf','#f5a623','#22c36a','#e8433a','#f5c842','#7c3a9e','#1ba890','#e91e63','#3c78dc','#b4692a','#78b43c','#00acc1','#757575'];
+
+function renderReport(){
+  const exps=getExpenses();
+  const totals={};
+  exps.forEach(e=>{totals[e.cat]=(totals[e.cat]||0)+e.amt});
+  const keys=Object.keys(totals);
+  const grand=Object.values(totals).reduce((s,v)=>s+v,0);
+  document.getElementById('rep-total').textContent='₱ '+fmt(grand);
+  document.getElementById('rep-cats').textContent=keys.length;
+  if(pieChart){pieChart.destroy();pieChart=null;}
+  if(!keys.length){document.getElementById('rep-body').innerHTML='<tr><td colspan="3" class="no-data">No expenses yet.</td></tr>';return}
+  const ctx=document.getElementById('pie-chart').getContext('2d');
+  pieChart=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels:keys,datasets:[{data:keys.map(k=>totals[k]),backgroundColor:CHART_COLORS.slice(0,keys.length),borderWidth:2,borderColor:'#fff'}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom',labels:{font:{family:'Outfit',size:11},padding:10,boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>{const pct=grand>0?((ctx.parsed/grand)*100).toFixed(1):'0';return` ₱${fmt(ctx.parsed)} (${pct}%)`}}}
+      }
+    }
+  });
+  const rows=keys.map(k=>{
+    const pct=grand>0?((totals[k]/grand)*100).toFixed(1):'0';
+    return`<tr><td><span class="cat-badge ${catClass(k)}">${k}</span></td><td>₱ ${fmt(totals[k])}</td><td>${pct}%</td></tr>`;
+  });
+  rows.push(`<tr style="font-weight:700;background:#f2ecfd"><td>TOTAL</td><td>₱ ${fmt(grand)}</td><td>100%</td></tr>`);
+  document.getElementById('rep-body').innerHTML=rows.join('');
+}
+
+/* ══ GOALS ══ */
+function getGoals(){return getUserData(currentUser.id,'goals')}
+function saveGoals(arr){saveUserData(currentUser.id,'goals',arr)}
+let editingGoalId=null;
+function openGoalModal(id){
+  editingGoalId=id||null;
+  document.getElementById('goal-modal-title').textContent=id?'Edit Goal':'Add Goal';
+  document.getElementById('goal-error').style.display='none';
+  if(id){const g=getGoals().find(g=>g.id===id);if(g){set('g-name',g.name);set('g-type',g.type);set('g-target',g.target);set('g-current',g.current)}}
+  else{set('g-name','');set('g-target','');set('g-current','');}
+  document.getElementById('goal-modal').style.display='flex';
+}
+function closeGoalModal(){document.getElementById('goal-modal').style.display='none';editingGoalId=null}
+function saveGoal(){
+  const name=v('g-name').trim(),type=v('g-type');
+  const target=parseFloat(v('g-target')),current=parseFloat(v('g-current')||0);
+  const errEl=document.getElementById('goal-error');
+  if(!name||!v('g-target')){errEl.textContent='Name and target amount required.';errEl.style.display='block';return}
+  if(isNaN(target)||target<0){errEl.textContent='Enter a valid target.';errEl.style.display='block';return}
+  const goals=getGoals();
+  if(editingGoalId){const idx=goals.findIndex(g=>g.id===editingGoalId);if(idx>-1)goals[idx]={...goals[idx],name,type,target,current};}
+  else goals.unshift({id:nextId(goals),name,type,target,current:isNaN(current)?0:current,achieved:false});
+  saveGoals(goals);closeGoalModal();renderGoals();toast(editingGoalId?'✓ Goal updated':'✓ Goal added');
+}
+function renderGoals(){
+  const goals=getGoals();
+  const body=document.getElementById('goals-body');
+  if(!goals.length){
+    body.innerHTML=`<div class="empty-state"><div style="font-size:2.5rem">🎯</div><div>No goals yet. Tap <strong>+ Add</strong> to start!</div></div>`;return;
+  }
+  body.innerHTML=goals.map(g=>{
+    const pct=g.target>0?Math.min((g.current/g.target)*100,100):0;
+    const over=g.type==='Spending Limit per Category'&&g.current>g.target;
+    const barColor=over?'var(--red)':g.achieved?'var(--green)':'linear-gradient(90deg,var(--p),var(--p-light))';
+    return`<div class="goal-card ${g.achieved?'achieved':''}">
+      <div style="font-size:26px;flex-shrink:0">${g.achieved?'✅':over?'⚠️':'🎯'}</div>
+      <div class="goal-info">
+        <div class="goal-name">${g.name}</div>
+        <div class="goal-type">${g.type}</div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+        <div class="progress-text">
+          <span>₱${fmt(g.current)} / ₱${fmt(g.target)}</span>
+          <span>${Math.round(pct)}%${over?' — Over!':g.achieved?' — Done!':''}</span>
+        </div>
+      </div>
+      <div class="goal-actions">
+        <button class="icon-btn btn-achieve" onclick="toggleAchieved(${g.id})">${g.achieved?'Unmark':'✓ Done'}</button>
+        <button class="icon-btn btn-edit" onclick="openGoalModal(${g.id})">Edit</button>
+        <button class="icon-btn btn-del" onclick="deleteGoal(${g.id})">Del</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleAchieved(id){const goals=getGoals(),idx=goals.findIndex(g=>g.id===id);if(idx>-1){goals[idx].achieved=!goals[idx].achieved;saveGoals(goals);renderGoals()}}
+function deleteGoal(id){if(!confirm('Delete this goal?'))return;saveGoals(getGoals().filter(g=>g.id!==id));renderGoals();toast('🗑 Goal deleted')}
+
+/* ══ HISTORY ══ */
+function getHistory(){return getUserData(currentUser.id,'history')}
+function saveHistory(arr){saveUserData(currentUser.id,'history',arr)}
+function renderHistory(){
+  const hist=getHistory();
+  const tbody=document.getElementById('hist-body');
+  if(!hist.length){tbody.innerHTML=`<tr><td colspan="6" class="no-data">No deleted history.</td></tr>`;return}
+  tbody.innerHTML=hist.map((e,i)=>`
+    <tr>
+      <td><input type="checkbox" class="hist-check" data-id="${e.id}"/>&nbsp;${i+1}</td>
+      <td>${e.desc}</td><td>₱ ${fmt(e.amt)}</td>
+      <td><span class="cat-badge ${catClass(e.cat)}">${e.cat}</span></td>
+      <td>${e.deletedAt}</td>
+      <td><button class="icon-btn btn-del" onclick="permDelete(${e.id})">Del</button></td>
+    </tr>`).join('');
+}
+function permDelete(id){if(!confirm('Permanently delete? Cannot be undone.'))return;saveHistory(getHistory().filter(e=>e.id!==id));renderHistory();toast('🗑 Permanently deleted')}
+function deleteSelectedHistory(){
+  const checked=[...document.querySelectorAll('.hist-check:checked')].map(c=>+c.dataset.id);
+  if(!checked.length){toast('⚠ Select at least one row.');return}
+  if(!confirm(`Permanently delete ${checked.length} record(s)?`))return;
+  saveHistory(getHistory().filter(e=>!checked.includes(e.id)));renderHistory();toast('🗑 Deleted selected');
+}
+function clearAllHistory(){
+  if(!getHistory().length){toast('History is already empty.');return}
+  if(!confirm('Delete ALL history? Cannot be undone.'))return;
+  saveHistory([]);renderHistory();toast('🗑 History cleared');
+}
+
+/* ══ KEYBOARD ══ */
+document.getElementById('li-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+document.getElementById('su-conf').addEventListener('keydown',e=>{if(e.key==='Enter')doSignup()});
+document.getElementById('e-amt').addEventListener('keydown',e=>{if(e.key==='Enter')addExpense()});
+
+/* ══ DEMO DATA ══ */
+(function initDemo(){
+  const users=getUsers();
+  if(!users['demo']){
+    users['demo']={password:'demo',id:9000001};saveUsers(users);
+    const uid=9000001;
+    db(`gt_${uid}_expenses`,[
+      {id:1,desc:'JOLLIBEE FAMILY MEAL',amt:580,cat:'FOOD & DRINK',dt:'2026-05-01 12:30:00'},
+      {id:2,desc:'MONTHLY RENT',amt:6500,cat:'RENT',dt:'2026-05-01 09:00:00'},
+      {id:3,desc:'MERALCO BILL',amt:2100,cat:'UTILITIES',dt:'2026-05-02 10:15:00'},
+      {id:4,desc:'SM MALL SHOPPING',amt:1800,cat:'SHOPPING',dt:'2026-05-03 14:45:00'},
+      {id:5,desc:'GASOLINE FILL-UP',amt:900,cat:'FUEL',dt:'2026-05-04 08:00:00'},
+      {id:6,desc:'BIOGESIC TABLETS',amt:120,cat:'MEDICINE',dt:'2026-05-05 16:20:00'},
+      {id:7,desc:'GRAB RIDE DOWNTOWN',amt:180,cat:'TRANSPORTATION',dt:'2026-05-06 09:30:00'},
+      {id:8,desc:'NETFLIX SUBSCRIPTION',amt:249,cat:'ENTERTAINMENT',dt:'2026-05-07 11:00:00'},
+      {id:9,desc:'TUITION FEE',amt:4500,cat:'SCHOOL FEES',dt:'2026-05-08 08:45:00'},
+      {id:10,desc:'PANTRY GROCERIES',amt:1350,cat:'FOOD & DRINK',dt:'2026-05-09 15:30:00'},
+    ]);
+    db(`gt_${uid}_goals`,[
+      {id:1,name:'Emergency Fund',type:'Monthly Savings Target',target:20000,current:13600,achieved:false},
+      {id:2,name:'Vacation Budget',type:'Custom Goal',target:15000,current:6300,achieved:false},
+      {id:3,name:'Food Spending Limit',type:'Spending Limit per Category',target:3000,current:1930,achieved:false},
+    ]);
+  }
+})();
+</script>
+</body>
+</html>
